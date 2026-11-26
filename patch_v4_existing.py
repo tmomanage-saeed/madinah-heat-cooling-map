@@ -59,7 +59,7 @@ R("""'raster-opacity':['interpolate',['linear'],['zoom'],9,0.85,14,0.7,16,0.45]"
 R("c:dec(L.c),rank:L.rank}", "c:dec(L.c),e:L.e?dec(L.e):null,f:L.f?dec(L.f):null,rank:L.rank}")
 R("p:LK.p[i],c:LK.c[i]}}", "p:LK.p[i],c:LK.c[i],e:LK.e?LK.e[i]/100:0,f:LK.f?LK.f[i]/100:0}}")
 R("""   ${bar('Land surface temp.',(p.h-1)/6,HEAT_COL[p.h])}${bar('Places people use',p.s,'#22d3ee')}${bar('People walking here',p.w,'#ec6a4c')}${bar('Missing shade',p.d,'#a8a29e')}""",
-  """   ${calcTable(p)}""")
+  """   ${bar('Land surface temp.',(p.h-1)/6,HEAT_COL[p.h])}${bar('Places people use',p.s,'#22d3ee')}${bar('People walking here',p.w,'#ec6a4c')}${bar('Missing shade',p.d,'#a8a29e')}""")   # bars only (user: no calculation table)
 R("// full priority card for one 1 km cell", """// priority calculation shown in the click card: each part 0-100 x its weight = points; the share of the
 // 30 m cell already under existing tree canopy is cut from the total
 function calcTable(p){const W=P.weights,V=[['Land surface temp.',(p.h-1)/6*100,W.heat,HEAT_COL[p.h]],['Places people use',p.s*100,W.places,'#22d3ee'],['People walking here',p.w*100,W.walking,'#ec6a4c'],['Missing shade',p.d*100,W.shade,'#a8a29e']];

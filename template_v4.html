@@ -500,7 +500,7 @@ function priorityCard(p){const TI=(P.tiers||{})[p.c]||{},pct=Math.round(100*LK.r
   const row=(l,v)=>`<div style="display:flex;justify-content:space-between;margin-top:3px"><span>${l}</span><b>${v}</b></div>`;
   return`<h5>Cooling priority: <span style="color:${CPI_COL[p.c]}">${CPI_LBL[p.c]}</span></h5>
    <div class="s">Land surface temperature: <b style="color:${HEAT_COL[p.h]}">${HEAT_LBL(p.h)}</b></div><div class="s">More urgent than <b>${Math.min(99,pct)} %</b></div>
-   ${calcTable(p)}
+   ${bar('Land surface temp.',(p.h-1)/6,HEAT_COL[p.h])}${bar('Places people use',p.s,'#22d3ee')}${bar('People walking here',p.w,'#ec6a4c')}${bar('Missing shade',p.d,'#a8a29e')}
    <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:12px"><b>🌳 Tree plan here</b>
    ${row('Tree every',fmt(TI.sp||24,0)+' m, both sides of the street')}${row('Footpath in shade (mature trees)',fmt(100*P.tree_sp/(TI.sp||24),0)+' %')}
    ${row('Air cooler ('+CPI_LBL[p.c]+' areas)',fmt(Math.abs(TI.dT||0),2)+' °C')}</div>`}
