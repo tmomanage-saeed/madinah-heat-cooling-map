@@ -232,6 +232,21 @@ R("vis('hex2',show.hex2&&!is3D2);", "vis('hex2',false);if(map2.getLayer('pmi2'))
 R("$('lg2').innerHTML=`<h4>Pedestrian movement</h4><div class=\"lg\">", "$('lg2').innerHTML=`<h4>Pedestrian movement</h4><div class=\"ramp\" style=\"background:linear-gradient(90deg,#2a2350,#5b2a86 25%,#a3307e 45%,#ec6a4c 70%,#ffd166)\"></div><div class=\"rampl\"><span>Very low</span><span>Medium</span><span>Very high</span></div><div class=\"sep\"></div><div class=\"lg\">")
 R('<span class=\"sw l\" style=\"background:#fff\"></span>Busy street corridor (width = flow)</div><div class=\"lg\"><span class=\"sw l\" style=\"background:#7dd3fc\"></span>Footpath / pedestrian corridor</div>',
   '<span class=\"sw l\" style=\"background:linear-gradient(90deg,#c084fc,#f472b6,#fb923c,#fde047)\"></span>Walking corridor (colour + width = people)</div>')
+
+# ---------- site points off by default (chip click shows them); "Land surface temperature" wording ----------
+R("cat1On=new Set(Object.keys(CAT))", "cat1On=new Set()")
+R("""$('cat1').innerHTML=Object.entries(CAT).map(([k,v])=>`<div class="chip" data-c="${k}">""", """$('cat1').innerHTML=Object.entries(CAT).map(([k,v])=>`<div class="chip off" data-c="${k}">""")
+R("m1Ready=true;syncShadeUI();applyShade();applyLayer();", "m1Ready=true;syncShadeUI();applyShade();applyLayer();applyCat1();")
+R("{k:'heat',n:'1',t:'Surface heat',d:'Measured land surface temperature'", "{k:'heat',n:'1',t:'Land surface temperature',d:'Measured from satellite, 30 m'")
+R("l:'Surface above 60 °C'", "l:'Land surface above 60 °C'")
+R("<li>Built on the <b>real surface‑heat map</b> of Madinah</li>", "<li>Built on the <b>land surface temperature</b> map of Madinah</li>")
+R("<tr><td>Surface heat</td><td>Land surface temperature map of Madinah (30 m)</td></tr>", "<tr><td>Land surface temperature</td><td>Satellite map of Madinah (30 m)</td></tr>")
+s = s.replace("h=`<h4>Surface temperature</h4>", "h=`<h4>Land surface temperature</h4>")
+s = s.replace("${bar('Surface heat',", "${bar('Land surface temp.',")
+s = s.replace('<div class="s">Surface <b style', '<div class="s">Land surface <b style')
+s = s.replace('<div class=\\"s\\">Surface <b style', '<div class=\\"s\\">Land surface <b style')
+s = s.replace("'Surface temperature'):'Pedestrian Movement'", "'Land surface temperature'):'Pedestrian Movement'")
+s = s.replace("'Surface heat map · OpenStreetMap", "'Land surface temperature · OpenStreetMap")
 open(DST, 'w', encoding='utf-8').write(s)
 print('ok', len(s))
 for bad in ('zcpi', 'ztree', 'hexmode', 'treeden', "'hex1'", 'hex1-crit', 'D.umb.features'):

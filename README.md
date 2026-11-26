@@ -9,7 +9,7 @@ There are no circles and no 1 km cells: every layer follows the real 30 m heat p
 
 | Step | Layer | Weight | Source |
 |---|---|---|---|
-| 1 | Surface heat | 40 % | `Heat_Zones_Madinah` (land surface temperature classes, 30 m) |
+| 1 | Land surface temperature | 40 % | `Heat_Zones_Madinah` (land surface temperature classes, 30 m) |
 | 2 | Places people use | 25 % | Mosques and schools 3, bus and malls 2.5, parks 1.5, Masjid an-Nabawi 10, within 300 m |
 | 3 | Where people walk | 20 % | Pedestrian Movement Index (footpaths, destinations, built density) |
 | 4 | Missing shade | 15 % | 1 − green share within about 270 m (OSM green land use) |
