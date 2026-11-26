@@ -396,7 +396,7 @@ function renderLegend1(){const x=layerOn;let h='';
   <div class="sep"></div>${Object.values(CAT).map(v=>`<div class="lg"><span class="sw c" style="background:${v.c}"></span>${v.l}</div>`).join('')}`}
 // ===================== MAP 1 =====================
 const map1=mkMap('map1');
-let m1Ready=false,cat1On=new Set(),topCat='all',pulse1=false,shadeOpt='tree',uelOn=new Set(['p','j','c','w']),sMin=55;
+let m1Ready=false,cat1On=new Set(),topCat='all',pulse1=false,shadeOpt='none',uelOn=new Set(['p','j','c','w']),sMin=55;
 // suitability cells + minute labels (compact arrays -> GeoJSON)
 const SUIT={type:'FeatureCollection',features:[]};{const o=D.suit.o,p=D.suit.p;for(let i=0;i<p.length;i+=3)SUIT.features.push({type:'Feature',properties:{s:p[i+2]},geometry:{type:'Point',coordinates:[o[0]+p[i]/1e5,o[1]+p[i+1]/1e5]}})}
 const CMIN={type:'FeatureCollection',features:[]};{const o=D.cmin.o,p=D.cmin.p,K='hbmsl';for(let i=0;i<p.length;i+=4)CMIN.features.push({type:'Feature',properties:{m:p[i+2],k:K[p[i+3]]},geometry:{type:'Point',coordinates:[o[0]+p[i]/1e5,o[1]+p[i+1]/1e5]}})}
@@ -469,7 +469,7 @@ function applyUmbFilter(){return;const f=['all',['in',['get','e'],['literal',[..
 function priorityCard(p){const TI=(P.tiers||{})[p.c]||{},pct=Math.round(100*LK.rank.filter(v=>v<=p.p).length/LK.rank.length);
   const row=(l,v)=>`<div style="display:flex;justify-content:space-between;margin-top:3px"><span>${l}</span><b>${v}</b></div>`;
   return`<h5>Cooling priority: <span style="color:${CPI_COL[p.c]}">${CPI_LBL[p.c]}</span></h5>
-   <div class="s">Land surface <b style="color:${HEAT_COL[p.h]}">${HEAT_LBL(p.h)}</b> · higher than ${Math.min(99,pct)} % of streets</div>
+   <div class="s">Land surface temperature: <b style="color:${HEAT_COL[p.h]}">${HEAT_LBL(p.h)}</b></div><div class="s">More urgent than <b>${Math.min(99,pct)} %</b> of Madinah's streets</div>
    ${bar('Land surface temp.',(p.h-1)/6,HEAT_COL[p.h])}${bar('Places people use',p.s,'#22d3ee')}${bar('People walking here',p.w,'#ec6a4c')}${bar('Missing shade',p.d,'#a8a29e')}
    <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:12px"><b>🌳 Tree plan here</b>
    ${row('Tree every',fmt(TI.sp||24,0)+' m, both sides of the street')}${row('Footpath in shade (mature trees)',fmt(100*P.tree_sp/(TI.sp||24),0)+' %')}
@@ -545,7 +545,7 @@ $('bcsv').onclick=()=>{
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='Madinah_Action_Requirement_Plan_top40.csv';a.click()};
 
 // ===================== MAP 2 =====================
-let map2=null,m2Ready=false,origin='h',T=15,playing=false,show={ctrips:true,umb2:false,stree2:true,cmin:true,trips:true,corr:true,catch:true,hex2:false,pmi:true,hot:false,pcnet:false,pc:false,pcp:false};
+let map2=null,m2Ready=false,origin='h',T=15,playing=false,show={ctrips:true,umb2:false,stree2:false,cmin:true,trips:true,corr:true,catch:true,hex2:false,pmi:true,hot:false,pcnet:false,pc:false,pcp:false};
 function initMap2(){if(map2)return;map2=mkMap('map2');
   map2.on('load',()=>{
     ['hex','hot','corr','catch','sites','pcnet'].forEach(k=>map2.addSource(k,{type:'geojson',data:D[k]}));
