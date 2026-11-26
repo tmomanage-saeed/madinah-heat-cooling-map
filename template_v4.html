@@ -369,10 +369,10 @@ const HG=new Map(),HC=0.008;HX.forEach((h,i)=>{const k=Math.floor(h[0]/HC)+','+M
 function hexAt(lon,lat){let best=null,bd=1e9;const cx=Math.floor(lon/HC),cy=Math.floor(lat/HC);for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){(HG.get((cx+a)+','+(cy+b))||[]).forEach(i=>{const h=HX[i],d=(h[0]-lon)**2+(h[1]-lat)**2;if(d<bd){bd=d;best=h}})}return bd<0.000034?best[2]:null}
 
 // priority lookup grid (EPSG:3857, ~90 m): heat class, places, walking, missing shade, priority, class
-const LK=(()=>{const L=D.look,dec=b=>Uint8Array.from(atob(b),c=>c.charCodeAt(0));return{gt:L.gt,w:L.shape[1],h:L.shape[0],h_:dec(L.h),s:dec(L.s),w_:dec(L.w),d:dec(L.d),p:dec(L.p),c:dec(L.c),rank:L.rank}})();
+const LK=(()=>{const L=D.look,dec=b=>Uint8Array.from(atob(b),c=>c.charCodeAt(0));return{gt:L.gt,w:L.shape[1],h:L.shape[0],h_:dec(L.h),s:dec(L.s),w_:dec(L.w),d:dec(L.d),p:dec(L.p),c:dec(L.c),e:L.e?dec(L.e):null,f:L.f?dec(L.f):null,rank:L.rank}})();
 function lookAt(lon,lat){const x=lon*20037508.34/180,y=Math.log(Math.tan((90+lat)*Math.PI/360))*6378137;
   const c=Math.floor((x-LK.gt[0])/LK.gt[1]),r=Math.floor((y-LK.gt[2])/LK.gt[3]);if(c<0||r<0||c>=LK.w||r>=LK.h)return null;const i=r*LK.w+c;
-  if(LK.h_[i]===255||LK.h_[i]===0)return null;return{h:LK.h_[i],s:LK.s[i]/100,w:LK.w_[i]/100,d:LK.d[i]/100,p:LK.p[i],c:LK.c[i]}}
+  if(LK.h_[i]===255||LK.h_[i]===0)return null;return{h:LK.h_[i],s:LK.s[i]/100,w:LK.w_[i]/100,d:LK.d[i]/100,p:LK.p[i],c:LK.c[i],e:LK.e?LK.e[i]/100:0,f:LK.f?LK.f[i]/100:0}}
 // layer-by-layer analysis
 const STEPS=[
   {k:'heat',n:'1',t:'Land surface temperature',d:'Measured from satellite, 30 m',w:P.weights.heat,sw:'linear-gradient(90deg,#5b5ea6,#9ec5e0,#fdbf86,#e35d5c,#b6244f)'},
@@ -485,12 +485,22 @@ function applyUmbFilter(){return;const f=['all',['in',['get','e'],['literal',[..
    <li><b>Perimeter</b>: 20 m ring outside each OSM footprint</li></ul>
    <div class="note">OSM: only ${fmt(S.trees)} trees mapped. <b>Next:</b> plug in Task 1 NDVI/LCC + Task 2–4 LST.</div>`;
 })();
-// full priority card for one 1 km cell
+// priority calculation shown in the click card: each part 0-100 x its weight = points; the share of the
+// 30 m cell already under existing tree canopy is cut from the total
+function calcTable(p){const W=P.weights,V=[['Land surface temp.',(p.h-1)/6*100,W.heat,HEAT_COL[p.h]],['Places people use',p.s*100,W.places,'#22d3ee'],['People walking here',p.w*100,W.walking,'#ec6a4c'],['Missing shade',p.d*100,W.shade,'#a8a29e']];
+  let sum=0;const rows=V.map(([l,v,w,c])=>{const pt=v*w/100;sum+=pt;return`<tr><td><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${c};margin-right:5px"></span>${l}</td><td>${fmt(v,0)}</td><td>× ${w} %</td><td><b>${fmt(pt,1)}</b></td></tr>`}).join('');
+  const cut=sum*p.f,tot=sum-cut;
+  return`<table class="plan" style="margin-top:6px;font-size:11.5px"><tr><th>Part</th><th>Value</th><th>Weight</th><th>Points</th></tr>${rows}
+   <tr><td>Sum</td><td></td><td>100 %</td><td>${fmt(sum,1)}</td></tr>
+   ${p.f>0.005?`<tr><td>🌲 Cut: existing canopy ${fmt(p.f*100,0)} % of this spot</td><td></td><td></td><td>− ${fmt(cut,1)}</td></tr>`:''}
+   <tr class="tot"><td>Priority score</td><td></td><td></td><td>${fmt(tot,1)} / 100</td></tr></table>
+   <div class="s" style="margin-top:4px">Tree canopy within 75 m: <b>${fmt(p.e*100,0)} %</b> (30 % = fully shaded)</div>`}
+// full priority card for one spot
 function priorityCard(p){const TI=(P.tiers||{})[p.c]||{},pct=Math.round(100*LK.rank.filter(v=>v<=p.p).length/LK.rank.length);
   const row=(l,v)=>`<div style="display:flex;justify-content:space-between;margin-top:3px"><span>${l}</span><b>${v}</b></div>`;
   return`<h5>Cooling priority: <span style="color:${CPI_COL[p.c]}">${CPI_LBL[p.c]}</span></h5>
    <div class="s">Land surface temperature: <b style="color:${HEAT_COL[p.h]}">${HEAT_LBL(p.h)}</b></div><div class="s">More urgent than <b>${Math.min(99,pct)} %</b></div>
-   ${bar('Land surface temp.',(p.h-1)/6,HEAT_COL[p.h])}${bar('Places people use',p.s,'#22d3ee')}${bar('People walking here',p.w,'#ec6a4c')}${bar('Missing shade',p.d,'#a8a29e')}
+   ${calcTable(p)}
    <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:12px"><b>🌳 Tree plan here</b>
    ${row('Tree every',fmt(TI.sp||24,0)+' m, both sides of the street')}${row('Footpath in shade (mature trees)',fmt(100*P.tree_sp/(TI.sp||24),0)+' %')}
    ${row('Air cooler ('+CPI_LBL[p.c]+' areas)',fmt(Math.abs(TI.dT||0),2)+' °C')}</div>`}
@@ -533,7 +543,7 @@ map1.on('load',()=>{
   map1.addLayer({id:'heat',type:'fill',source:'heat',paint:{'fill-color':hc,'fill-opacity':['interpolate',['linear'],['zoom'],9,0.72,13,0.55,16,0.32],'fill-antialias':false}},'lbl');
   map1.addLayer({id:'heat-line',type:'line',source:'heat',minzoom:13,paint:{'line-color':hc,'line-width':0.6,'line-opacity':0.7}},'lbl');
   Object.entries(D.layers).forEach(([k,v])=>{map1.addSource('ly-'+k,{type:'image',url:v.img,coordinates:v.co});
-    map1.addLayer({id:'ly-'+k,type:'raster',source:'ly-'+k,layout:{visibility:'none'},paint:{'raster-opacity':['interpolate',['linear'],['zoom'],9,0.85,14,0.7,16,0.45],'raster-resampling':'nearest','raster-fade-duration':0}},'lbl')});
+    map1.addLayer({id:'ly-'+k,type:'raster',source:'ly-'+k,layout:{visibility:'none'},paint:{'raster-opacity':k==='shade'?['interpolate',['linear'],['zoom'],9,1,16,0.95]:['interpolate',['linear'],['zoom'],9,0.85,14,0.7,16,0.45],'raster-resampling':'nearest','raster-fade-duration':0}},'lbl')});
   map1.addSource('corr1',{type:'geojson',data:D.corr});
   map1.addLayer({id:'corr1',type:'line',source:'corr1',layout:{visibility:'none','line-cap':'round'},paint:{'line-color':['match',['get','k'],'ped','#7dd3fc','#fff7d6'],'line-opacity':0.9,'line-width':['interpolate',['linear'],['zoom'],11,['*',['get','p'],1.6],16,['*',['get','p'],6]]}});
   map1.addLayer({id:'parks1',type:'fill',source:'parks',paint:{'fill-color':'#4ade80','fill-opacity':0.35,'fill-outline-color':'#4ade80'}});

@@ -45,7 +45,7 @@ PIX = 30.0
 W_HEAT, W_SENS, W_PED, W_SHADE = 0.40, 0.25, 0.20, 0.15
 SENS_W = {"Mosques": 3.0, "Schools": 3.0, "Bus_Stations": 2.5, "Shopping_Malls": 2.5}
 PARK_W, NABAWI_W, SENS_R = 1.5, 10.0, 300.0
-GREEN_FULL, GREEN_WIN = 0.30, 9          # 9 px x 30 m = 270 m window
+GREEN_FULL, GREEN_WIN = 0.30, 5          # 5 px x 30 m = 150 m window (about 75 m around the spot): the shade people actually walk in
 BRK_PCT = [40, 65, 85, 95]
 TREE_M2, TREE_SP = 53.0, 8.0             # mean measured crown (Meta/WRI 1 m canopy height), ~8 m across
 SP_CLS = {5: 8.0, 4: 10.0, 3: 12.0, 2: 16.0, 1: 24.0, 0: 24.0}
@@ -138,7 +138,7 @@ ET = np.load(os.path.join(ROOT, "data", "existing_trees", "existing_trees.npz"))
 _ex = np.array([to_utm.TransformPoint(float(a), float(b))[:2] for a, b in zip(ET["lat"] * 0 + ET["lon"], ET["lat"])])
 er, ec = px(_ex[:, 0], _ex[:, 1])
 can_m2 = np.zeros((NY, NX), np.float32); np.add.at(can_m2, (er, ec), ET["crown"].astype(np.float32))
-can_share = uniform_filter(np.clip(can_m2 / (PIX * PIX), 0, 1), GREEN_WIN)       # tree canopy share within ~270 m
+can_share = uniform_filter(np.clip(can_m2 / (PIX * PIX), 0, 1), GREEN_WIN)       # tree canopy share within ~75 m
 green = rasterize(to_utm_layer(gf("landuse_a"), where="fclass IN (%s)" % ",".join(f"'{x}'" for x in GREEN_FC)))
 gshare = uniform_filter((green > 0).astype(np.float32), GREEN_WIN)
 # 30 % canopy within the neighbourhood = fully shaded (the "30" of the 3-30-300 urban forestry rule, Konijnendijk 2021)
@@ -146,6 +146,10 @@ D = 1 - np.clip(np.maximum(can_share, gshare) / GREEN_FULL, 0, 1)
 log(f"Existing trees {len(_ex)}; canopy {can_m2[mask].sum() / 1e6:.1f} km2 in boundary")
 
 P = np.where(inside, W_HEAT * H + W_SENS * S + W_PED * Wk + W_SHADE * D, 0).astype(np.float32)
+# exclude the area already under existing tree canopy: priority applies only to the unshaded part of each 30 m cell
+FC = np.clip(can_m2 / (PIX * PIX), 0, 1)
+P = (P * (1 - FC)).astype(np.float32)
+OPEN = np.where(inside, 1 - FC, 0)          # unshaded share of each cell (for areas)
 
 # ---------------- roads ----------------
 log("Roads ...")
@@ -195,7 +199,8 @@ sP = P[sr, sc]; sP = sP[inside[sr, sc]]
 brk = np.percentile(sP, BRK_PCT)
 C = np.where(inside, np.digitize(P, brk) + 1, 0).astype(np.uint8)
 log("Breaks " + ", ".join(f"{b:.3f}" for b in brk) + f"  (street samples {len(sP)})")
-for c in range(5, 0, -1): log(f"  {LBL[c]:<10} {(C == c).sum() * PIX * PIX / 1e6:7.1f} km2")
+for c in range(5, 0, -1): log(f"  {LBL[c]:<10} {OPEN[C == c].sum() * PIX * PIX / 1e6:7.1f} km2 (unshaded)")
+log(f"  canopy excluded {(FC * inside).sum() * PIX * PIX / 1e6:.1f} km2")
 
 # ---------------- street trees ----------------
 log("Street trees ...")
@@ -281,20 +286,20 @@ allT = np.vstack([street, site]); tr, tc = px(allT[:, 0], allT[:, 1]); tcls = C[
 sr_, sc_ = px(street[:, 0], street[:, 1]); scls = C[sr_, sc_]
 tiers = {}
 for c in range(5, -1, -1):
-    a_ = (C == c).sum() * PIX * PIX if c > 0 else 0
+    a_ = float(OPEN[C == c].sum()) * PIX * PIX if c > 0 else 0
     n_ = int((scls == c).sum()); nall = int((tcls == c).sum())
     pp = 100 * nall * TREE_M2 / a_ if a_ else 0
     tiers[c] = {"sp": SP_CLS[c], "km": round(km_cls.get(c, 0)), "n": n_, "km2": round(a_ / 1e6, 1),
                 "canopy_pp": round(pp, 2), "dT": round(-0.33 * pp / 10, 2)}
     log(f"  {LBL[c]:<10} every {SP_CLS[c]:>4.0f} m  {n_:>7} trees  {km_cls.get(c, 0):6.0f} km  +{pp:.2f} pp  {-0.33 * pp / 10:.2f} C")
-hiA = (C >= 3).sum() * PIX * PIX; hiN = int((tcls >= 3).sum())
+hiA = float(OPEN[C >= 3].sum()) * PIX * PIX; hiN = int((tcls >= 3).sum())
 canopy_pp = 100 * hiN * TREE_M2 / hiA; air_dT = -0.33 * canopy_pp / 10
 log(f"High+ {hiA / 1e6:.0f} km2: +{canopy_pp:.2f} pp canopy -> air {air_dT:.2f} C")
 
 # ---------------- web layers (EPSG:3857 PNG overlays) ----------------
-def warp(arr, resample):
+def warp(arr, resample, res=PIX):
     src = mem_raster(gdal.GDT_Float32); src.GetRasterBand(1).WriteArray(arr.astype(np.float32))   # (setting a band nodata on a MEM source empties the warp output)
-    out = gdal.Warp("", src, format="MEM", dstSRS="EPSG:3857", resampleAlg=resample, xRes=PIX, yRes=PIX, srcNodata=-1, dstNodata=-1)
+    out = gdal.Warp("", src, format="MEM", dstSRS="EPSG:3857", resampleAlg=resample, xRes=res, yRes=res, srcNodata=-1, dstNodata=-1)
     a = out.GetRasterBand(1).ReadAsArray(); gt = out.GetGeoTransform()
     return a, gt
 def corners(gt, shape):
@@ -321,7 +326,32 @@ def ramp(v, valid, stops):
 
 CPI_COL = {1: "#fde68a", 2: "#fbbf24", 3: "#f97316", 4: "#dc2626", 5: "#7f1d1d"}
 layers = {}
+# Missing shade is drawn at 10 m with every existing tree crown cut out (transparent),
+# so the area under existing canopy does not show at all in that layer.
+FINE = 10.0
 cw, gt = warp(np.where(inside, C, -1), "near")
+_s10, gtF = warp(np.where(inside, D, -1), "bilinear", FINE)
+def canopy_cover(gt, shape):
+    """share of each fine 3857 pixel covered by existing crowns (circles of the measured crown area), 4x4 sub-samples"""
+    h_, w_ = shape; cov = np.zeros(shape, np.float32)
+    mx = np.radians(ET["lon"]) * 6378137.0; my = np.log(np.tan(np.pi / 4 + np.radians(ET["lat"]) / 2)) * 6378137.0
+    k = 1 / np.cos(np.radians(ET["lat"]))                      # mercator scale
+    rr = np.sqrt(np.maximum(ET["crown"], 4) / np.pi) * k / gt[1]
+    cx = (mx - gt[0]) / gt[1]; cy = (my - gt[3]) / gt[5]
+    sub = (np.arange(4) + 0.5) / 4
+    for oy in range(-2, 3):
+        for ox in range(-2, 3):
+            pc = np.floor(cx).astype(int) + ox; pr = np.floor(cy).astype(int) + oy
+            ok = (pc >= 0) & (pr >= 0) & (pc < w_) & (pr < h_)
+            frac = np.zeros(len(cx), np.float32)
+            for sy in sub:
+                for sx in sub:
+                    frac += (((pc + sx - cx) ** 2 + (pr + sy - cy) ** 2) < rr ** 2) / 16.0
+            m = ok & (frac > 0)
+            np.add.at(cov, (pr[m], pc[m]), frac[m])
+    return np.clip(cov, 0, 1)
+CUT = canopy_cover(gtF, _s10.shape) >= 0.5
+log(f"  fine grid {cw.shape}, crown pixels cut {CUT.sum()} ({CUT.sum() * (FINE * math.cos(math.radians(24.47))) ** 2 / 1e6:.1f} km2)")
 rgba = np.zeros(cw.shape + (4,), np.uint8)
 for c, col in CPI_COL.items():
     m = cw == c; rgba[m, :3] = hex2rgb(col); rgba[m, 3] = 255
@@ -329,9 +359,12 @@ layers["prio"] = {"img": png(rgba), "co": corners(gt, cw.shape)}
 for k, arr, stops in [
     ("sens", S, [(0, "#ecfeff", 0), (0.02, "#a5f3fc", 90), (0.3, "#22d3ee", 190), (1, "#0e7490", 240)]),
     ("walk", Wk, [(0, "#fef9c3", 0), (0.05, "#fde68a", 90), (0.4, "#f59e0b", 190), (1, "#b45309", 240)]),
-    ("shade", D, [(0, "#dcfce7", 0), (0.3, "#d6d3d1", 40), (0.9, "#a8a29e", 150), (1, "#78716c", 200)])]:
-    a, gt2 = warp(np.where(inside, arr, -1), "bilinear")
-    layers[k] = {"img": png(ramp(a, a >= 0, stops)), "co": corners(gt2, a.shape)}
+    ("shade", D, [(0, "#e7e5e4", 0), (0.3, "#d6d3d1", 60), (0.7, "#a8a29e", 170), (1, "#57534e", 225)])]:
+    if k == "shade":
+        a, gt2 = warp(np.where(inside, arr, -1), "bilinear", FINE); im = ramp(a, a >= 0, stops); im[CUT, 3] = 0
+    else:
+        a, gt2 = warp(np.where(inside, arr, -1), "bilinear"); im = ramp(a, a >= 0, stops)
+    layers[k] = {"img": png(im), "co": corners(gt2, a.shape)}
 for k, v in layers.items(): log(f"  layer {k}: {len(v['img']) / 1e6:.2f} MB")
 
 # click lookup grid (~90 m, EPSG:3857): heat class, places, walking, missing shade, priority, class
@@ -341,7 +374,8 @@ def look(arr, res):
     return a[::LOOK, ::LOOK], g
 lk = {}
 for k, arr, sc_, res in [("h", heat, 1, "near"), ("s", S, 100, "bilinear"), ("w", Wk, 100, "bilinear"),
-                         ("d", D, 100, "bilinear"), ("p", P, 250, "bilinear"), ("c", C, 1, "near")]:
+                         ("d", D, 100, "bilinear"), ("p", P, 250, "bilinear"), ("c", C, 1, "near"),
+                         ("e", np.maximum(can_share, gshare), 100, "bilinear"), ("f", FC, 100, "bilinear")]:
     a, g = look(arr, res)
     b = np.where(a < 0, 255, np.clip(np.round(a * sc_), 0, 254)).astype(np.uint8)
     lk[k] = base64.b64encode(b.tobytes()).decode()
@@ -375,7 +409,8 @@ pl["canopy_pp"] = round(canopy_pp, 2); pl["air_dT"] = round(air_dT, 2); pl["hot_
 pl["tree_sp"] = TREE_SP; pl["crown_m2"] = TREE_M2
 pl["weights"] = {"heat": 40, "places": 25, "walking": 20, "shade": 15}
 st = d["stats"]
-st["cpi_km2"] = {str(c): round(float((C == c).sum() * PIX * PIX / 1e6), 1) for c in range(1, 6)}
+st["cpi_km2"] = {str(c): round(float(OPEN[C == c].sum() * PIX * PIX / 1e6), 1) for c in range(1, 6)}
+st["canopy_excluded_km2"] = round(float((FC * inside).sum() * PIX * PIX / 1e6), 1)
 st["cpi_counts"] = {str(c): int((C == c).sum()) for c in range(1, 6)}
 st["cpi_breaks"] = [round(float(b), 3) for b in brk]
 st["heat_km2"] = {str(int(k)): round(float(((heat == k) & mask).sum() * PIX * PIX / 1e6), 1) for k in range(1, 8)}

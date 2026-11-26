@@ -52,5 +52,24 @@ R("{k:'shade',n:'4',t:'Missing shade',d:'Little or no green nearby'", "{k:'shade
 R("""    <tr><td>Tree size 53 m²</td><td>Average of 40,800 real trees in Madinah</td></tr>""",
   """    <tr><td>Existing trees ${fmt((P.existing||{}).n||0)}</td><td>Meta/WRI 1 m tree height map (young and small trees are under‑counted)</td></tr>
     <tr><td>Tree size 53 m²</td><td>Average of 40,800 real trees in Madinah</td></tr>""")
+# Missing shade layer stronger, so the cut-out crowns (holes) are clearly visible
+R("""'raster-opacity':['interpolate',['linear'],['zoom'],9,0.85,14,0.7,16,0.45]""",
+  """'raster-opacity':k==='shade'?['interpolate',['linear'],['zoom'],9,1,16,0.95]:['interpolate',['linear'],['zoom'],9,0.85,14,0.7,16,0.45]""")
+# ---------- click card: full calculation (value x weight = points; existing canopy cut) ----------
+R("c:dec(L.c),rank:L.rank}", "c:dec(L.c),e:L.e?dec(L.e):null,f:L.f?dec(L.f):null,rank:L.rank}")
+R("p:LK.p[i],c:LK.c[i]}}", "p:LK.p[i],c:LK.c[i],e:LK.e?LK.e[i]/100:0,f:LK.f?LK.f[i]/100:0}}")
+R("""   ${bar('Land surface temp.',(p.h-1)/6,HEAT_COL[p.h])}${bar('Places people use',p.s,'#22d3ee')}${bar('People walking here',p.w,'#ec6a4c')}${bar('Missing shade',p.d,'#a8a29e')}""",
+  """   ${calcTable(p)}""")
+R("// full priority card for one 1 km cell", """// priority calculation shown in the click card: each part 0-100 x its weight = points; the share of the
+// 30 m cell already under existing tree canopy is cut from the total
+function calcTable(p){const W=P.weights,V=[['Land surface temp.',(p.h-1)/6*100,W.heat,HEAT_COL[p.h]],['Places people use',p.s*100,W.places,'#22d3ee'],['People walking here',p.w*100,W.walking,'#ec6a4c'],['Missing shade',p.d*100,W.shade,'#a8a29e']];
+  let sum=0;const rows=V.map(([l,v,w,c])=>{const pt=v*w/100;sum+=pt;return`<tr><td><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${c};margin-right:5px"></span>${l}</td><td>${fmt(v,0)}</td><td>× ${w} %</td><td><b>${fmt(pt,1)}</b></td></tr>`}).join('');
+  const cut=sum*p.f,tot=sum-cut;
+  return`<table class="plan" style="margin-top:6px;font-size:11.5px"><tr><th>Part</th><th>Value</th><th>Weight</th><th>Points</th></tr>${rows}
+   <tr><td>Sum</td><td></td><td>100 %</td><td>${fmt(sum,1)}</td></tr>
+   ${p.f>0.005?`<tr><td>🌲 Cut: existing canopy ${fmt(p.f*100,0)} % of this spot</td><td></td><td></td><td>− ${fmt(cut,1)}</td></tr>`:''}
+   <tr class="tot"><td>Priority score</td><td></td><td></td><td>${fmt(tot,1)} / 100</td></tr></table>
+   <div class="s" style="margin-top:4px">Tree canopy within 75 m: <b>${fmt(p.e*100,0)} %</b> (30 % = fully shaded)</div>`}
+// full priority card for one spot""")
 open(DST, 'w', encoding='utf-8').write(s)
 print('ok existing')
