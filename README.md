@@ -51,6 +51,7 @@ python -I heat_export.py     # heat zones -> heat_zones.json
 python -I heat_priority.py   # priority grid, street trees, layers -> madinah_data_v4.json
 python -I pmi_layer.py       # Map 02 pedestrian movement colour layer
 python -I patch_v4.py        # template_v4.html from ../web/template.html
+python -I patch_v4_existing.py  # existing-trees layer
 python -I inject_v4.py       # -> index.html
 ```
 Use the ArcGIS Pro Python (`arcgispro-py3`). Only GDAL, numpy and scipy are needed (no arcpy).

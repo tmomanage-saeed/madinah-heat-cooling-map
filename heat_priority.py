@@ -133,9 +133,17 @@ pmi = rasterize(to_utm_layer(GDB, "Pedestrian_Movement_Hex"), attr="PMI")
 Wk = norm(pmi, inside)
 
 # ---------------- missing shade ----------------
+# existing tree canopy (Meta/WRI 1 m canopy height, treetops + crowns from existing_trees.py) + OSM parks / green land use
+ET = np.load(os.path.join(ROOT, "data", "existing_trees", "existing_trees.npz"))
+_ex = np.array([to_utm.TransformPoint(float(a), float(b))[:2] for a, b in zip(ET["lat"] * 0 + ET["lon"], ET["lat"])])
+er, ec = px(_ex[:, 0], _ex[:, 1])
+can_m2 = np.zeros((NY, NX), np.float32); np.add.at(can_m2, (er, ec), ET["crown"].astype(np.float32))
+can_share = uniform_filter(np.clip(can_m2 / (PIX * PIX), 0, 1), GREEN_WIN)       # tree canopy share within ~270 m
 green = rasterize(to_utm_layer(gf("landuse_a"), where="fclass IN (%s)" % ",".join(f"'{x}'" for x in GREEN_FC)))
 gshare = uniform_filter((green > 0).astype(np.float32), GREEN_WIN)
-D = 1 - np.clip(gshare / GREEN_FULL, 0, 1)
+# 30 % canopy within the neighbourhood = fully shaded (the "30" of the 3-30-300 urban forestry rule, Konijnendijk 2021)
+D = 1 - np.clip(np.maximum(can_share, gshare) / GREEN_FULL, 0, 1)
+log(f"Existing trees {len(_ex)}; canopy {can_m2[mask].sum() / 1e6:.1f} km2 in boundary")
 
 P = np.where(inside, W_HEAT * H + W_SENS * S + W_PED * Wk + W_SHADE * D, 0).astype(np.float32)
 
@@ -262,6 +270,7 @@ def free(x, y):
     return True
 def put(x, y): store.setdefault((int(x // TREE_SP), int(y // TREE_SP)), []).append((x, y))
 for x, y in site: put(x, y)
+for x, y in _ex: put(x, y)          # existing trees: no new tree within 8 m of one
 street = []
 for x, y in SP_:
     if free(x, y): put(x, y); street.append((x, y))
@@ -354,6 +363,9 @@ def pack(xy):
         out += [int(round((lon - 39.3) * 1e5)), int(round((lat - 24.2) * 1e5))]
     return {"o": [39.3, 24.2], "p": out}
 d["stree"] = pack(street)
+# existing trees for the web map: position, height (m), crown (m2)
+_e = pack(_ex); d["etree"] = {"o": _e["o"], "p": _e["p"], "h": [int(v) for v in ET["h"]], "c": [int(round(v)) for v in ET["crown"]]}
+d["plan"]["existing"] = {"n": int(len(_ex)), "canopy_km2": round(float(can_m2[mask].sum() / 1e6), 1)}
 pl = d["plan"]
 pl["tiers"] = {str(c): v for c, v in tiers.items()}
 pl["street"] = {"n": int(len(street)), "km": round(sum(km_cls.values()))}
