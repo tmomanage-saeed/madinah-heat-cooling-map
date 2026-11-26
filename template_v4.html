@@ -522,7 +522,7 @@ function sitePopup(p,ll){
    <div class="s">${CAT[p.cat].l} · cooling priority <b style="color:${CPI_COL[p.c]}">${CPI_LBL[p.c]}</b></div>
    ${p.h?`<div class="s">Land surface <b style="color:${HEAT_COL[p.h]}">${HEAT_LBL(p.h)}</b></div>${bar('Land surface temp.',(p.h-1)/6,HEAT_COL[p.h])}`:''}${bar('Places people use',p.s,'#22d3ee')}${bar('People walking',p.p,'#f59e0b')}${bar('Missing shade',p.sh,'#a8a29e')}
    ${pl?`<div class="act"><span>🌳 <b>${pl.trees}</b> trees at this site</span></div>${pl.note&&!/umbrella/i.test(pl.note)?`<div class="s" style="margin-top:6px">${esc(pl.note)}</div>`:''}`:''}
-   ${timesHTML(walkTimes({lng:ll[0],lat:ll[1]}))}</div>`).addTo(map1);
+   </div>`).addTo(map1);
 }
 function applyCat1(){if(!m1Ready)return;const f=['in',['get','cat'],['literal',[...cat1On]]];
   ['sites1','perim-fill','perim-line'].forEach(l=>map1.setFilter(l,f));
@@ -571,7 +571,7 @@ map1.on('load',()=>{
       if(q){new maplibregl.Popup({maxWidth:'280px'}).setLngLat(q.geometry.coordinates).setHTML(`<div class="pp"><h5>🌲 Existing tree</h5><div class="s">Height <b>${q.properties.h} m</b> · crown <b>${fmt(q.properties.c)} m²</b></div><div class="s" style="margin-top:4px">Meta/WRI 1 m tree height map</div></div>`).addTo(map1);return}}
     const p=lookAt(e.lngLat.lng,e.lngLat.lat);
     new maplibregl.Popup({maxWidth:'330px'}).setLngLat(e.lngLat).setHTML(`<div class="pp">${p&&p.c>=1?priorityCard(p):'<h5>Outside the heat map</h5><div class="s">No surface‑temperature data here.</div>'}
-      ${timesHTML(walkTimes(e.lngLat))}</div>`).addTo(map1)});
+      </div>`).addTo(map1)});
   ['sites1'].forEach(l=>{map1.on('mouseenter',l,()=>map1.getCanvas().style.cursor='pointer');map1.on('mouseleave',l,()=>map1.getCanvas().style.cursor='')});
   setTimeout(()=>{const L=$('loader');if(L){L.style.opacity=0;L.style.pointerEvents='none';setTimeout(()=>L.remove(),700)}map1.easeTo({center:[D.haram[0]+0.005,D.haram[1]-0.01],zoom:11.6,pitch:35,bearing:-12,duration:3200})},600);
 });

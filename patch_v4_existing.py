@@ -52,6 +52,9 @@ R("{k:'shade',n:'4',t:'Missing shade',d:'Little or no green nearby'", "{k:'shade
 R("""    <tr><td>Tree size 53 m²</td><td>Average of 40,800 real trees in Madinah</td></tr>""",
   """    <tr><td>Existing trees ${fmt((P.existing||{}).n||0)}</td><td>Meta/WRI 1 m tree height map (young and small trees are under‑counted)</td></tr>
     <tr><td>Tree size 53 m²</td><td>Average of 40,800 real trees in Madinah</td></tr>""")
+# Map 01 popups: no walking-time section (kept on Map 02)
+R("""      ${timesHTML(walkTimes(e.lngLat))}</div>`).addTo(map1)});""", """      </div>`).addTo(map1)});""")
+R("""   ${timesHTML(walkTimes({lng:ll[0],lat:ll[1]}))}</div>`).addTo(map1);""", """   </div>`).addTo(map1);""")
 # Missing shade layer stronger, so the cut-out crowns (holes) are clearly visible
 R("""'raster-opacity':['interpolate',['linear'],['zoom'],9,0.85,14,0.7,16,0.45]""",
   """'raster-opacity':k==='shade'?['interpolate',['linear'],['zoom'],9,1,16,0.95]:['interpolate',['linear'],['zoom'],9,0.85,14,0.7,16,0.45]""")
