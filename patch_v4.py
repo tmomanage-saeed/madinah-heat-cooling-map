@@ -259,6 +259,9 @@ R("show={ctrips:true,umb2:false,", "show={sites2:false,ctrips:false,umb2:false,"
 R("cmin:true,trips:true,", "cmin:true,trips:false,")
 R("const T2=[['pmi','Pedestrian movement (colour)'],", "const T2=[['pmi','Pedestrian movement (colour)'],['sites2','Bus stations / stops and malls'],")
 R("vis('hex2',false);", "vis('hex2',false);vis('sites2',show.sites2);")
+
+# ---------- default layer: Cooling priority ----------
+R("let layerOn='heat';", "let layerOn='prio';")
 open(DST, 'w', encoding='utf-8').write(s)
 print('ok', len(s))
 for bad in ('zcpi', 'ztree', 'hexmode', 'treeden', "'hex1'", 'hex1-crit', 'D.umb.features'):

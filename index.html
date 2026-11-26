@@ -377,7 +377,7 @@ const STEPS=[
   {k:'walk',n:'3',t:'Where people walk',d:'Walking corridors · thicker line = more people',w:P.weights.walking,sw:'linear-gradient(90deg,#2a2350,#5b2a86 25%,#a3307e 45%,#ec6a4c 70%,#ffd166)'},
   {k:'shade',n:'4',t:'Missing shade',d:'Little or no green nearby',w:P.weights.shade,sw:'linear-gradient(90deg,#e7e5e4,#a8a29e,#78716c)'},
   {k:'prio',n:'=',t:'Cooling priority',d:'All four combined → where trees go first',w:null,sw:'linear-gradient(90deg,#fde68a,#fbbf24,#f97316,#dc2626,#7f1d1d)'}];
-let layerOn='heat';
+let layerOn='prio';
 function renderSteps(){$('steps').innerHTML=STEPS.map(x=>`<button class="step ${x.k==='prio'?'res':''} ${x.k===layerOn?'on':''}" data-k="${x.k}"><span class="n">${x.n}</span><span><b>${x.t}</b><small>${x.d}</small><div class="sw2" style="background:${x.sw}"></div></span><span class="w">${x.w!=null?x.w+' %':''}</span></button>`).join('');
   $('steps').querySelectorAll('.step').forEach(b=>b.onclick=()=>{layerOn=layerOn===b.dataset.k?null:b.dataset.k;renderSteps();applyLayer()})}
 function applyLayer(){if(!m1Ready)return;
