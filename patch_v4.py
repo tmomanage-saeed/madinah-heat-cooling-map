@@ -252,7 +252,13 @@ s = s.replace("'Surface heat map · OpenStreetMap", "'Land surface temperature �
 R("pulse1=false,shadeOpt='tree'", "pulse1=false,shadeOpt='none'")
 R("stree2:true,cmin", "stree2:false,cmin")
 R("""<div class="s">Land surface <b style="color:${HEAT_COL[p.h]}">${HEAT_LBL(p.h)}</b> · higher than ${Math.min(99,pct)} % of streets</div>""",
-  """<div class="s">Land surface temperature: <b style="color:${HEAT_COL[p.h]}">${HEAT_LBL(p.h)}</b></div><div class="s">More urgent than <b>${Math.min(99,pct)} %</b> of Madinah's streets</div>""")
+  """<div class="s">Land surface temperature: <b style="color:${HEAT_COL[p.h]}">${HEAT_LBL(p.h)}</b></div><div class="s">More urgent than <b>${Math.min(99,pct)} %</b></div>""")
+
+# ---------- map 2: all points off by default (bus/mall points, walking pedestrians) ----------
+R("show={ctrips:true,umb2:false,", "show={sites2:false,ctrips:false,umb2:false,")
+R("cmin:true,trips:true,", "cmin:true,trips:false,")
+R("const T2=[['pmi','Pedestrian movement (colour)'],", "const T2=[['pmi','Pedestrian movement (colour)'],['sites2','Bus stations / stops and malls'],")
+R("vis('hex2',false);", "vis('hex2',false);vis('sites2',show.sites2);")
 open(DST, 'w', encoding='utf-8').write(s)
 print('ok', len(s))
 for bad in ('zcpi', 'ztree', 'hexmode', 'treeden', "'hex1'", 'hex1-crit', 'D.umb.features'):

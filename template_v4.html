@@ -469,7 +469,7 @@ function applyUmbFilter(){return;const f=['all',['in',['get','e'],['literal',[..
 function priorityCard(p){const TI=(P.tiers||{})[p.c]||{},pct=Math.round(100*LK.rank.filter(v=>v<=p.p).length/LK.rank.length);
   const row=(l,v)=>`<div style="display:flex;justify-content:space-between;margin-top:3px"><span>${l}</span><b>${v}</b></div>`;
   return`<h5>Cooling priority: <span style="color:${CPI_COL[p.c]}">${CPI_LBL[p.c]}</span></h5>
-   <div class="s">Land surface temperature: <b style="color:${HEAT_COL[p.h]}">${HEAT_LBL(p.h)}</b></div><div class="s">More urgent than <b>${Math.min(99,pct)} %</b> of Madinah's streets</div>
+   <div class="s">Land surface temperature: <b style="color:${HEAT_COL[p.h]}">${HEAT_LBL(p.h)}</b></div><div class="s">More urgent than <b>${Math.min(99,pct)} %</b></div>
    ${bar('Land surface temp.',(p.h-1)/6,HEAT_COL[p.h])}${bar('Places people use',p.s,'#22d3ee')}${bar('People walking here',p.w,'#ec6a4c')}${bar('Missing shade',p.d,'#a8a29e')}
    <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:12px"><b>🌳 Tree plan here</b>
    ${row('Tree every',fmt(TI.sp||24,0)+' m, both sides of the street')}${row('Footpath in shade (mature trees)',fmt(100*P.tree_sp/(TI.sp||24),0)+' %')}
@@ -545,7 +545,7 @@ $('bcsv').onclick=()=>{
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='Madinah_Action_Requirement_Plan_top40.csv';a.click()};
 
 // ===================== MAP 2 =====================
-let map2=null,m2Ready=false,origin='h',T=15,playing=false,show={ctrips:true,umb2:false,stree2:false,cmin:true,trips:true,corr:true,catch:true,hex2:false,pmi:true,hot:false,pcnet:false,pc:false,pcp:false};
+let map2=null,m2Ready=false,origin='h',T=15,playing=false,show={sites2:false,ctrips:false,umb2:false,stree2:false,cmin:true,trips:false,corr:true,catch:true,hex2:false,pmi:true,hot:false,pcnet:false,pc:false,pcp:false};
 function initMap2(){if(map2)return;map2=mkMap('map2');
   map2.on('load',()=>{
     ['hex','hot','corr','catch','sites','pcnet'].forEach(k=>map2.addSource(k,{type:'geojson',data:D[k]}));
@@ -611,7 +611,7 @@ function initMap2(){if(map2)return;map2=mkMap('map2');
   $('orig').innerHTML=Object.entries(ORIG).map(([k,v])=>`<button data-k="${k}" class="${k===origin?'on':''}">${v.l}</button>`).join('');
   $('orig').querySelectorAll('button').forEach(b=>b.onclick=()=>{$('orig').querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');setOrigin(b.dataset.k);startPlay()});
   distRows($('d2'),[5,4,3,2,1].map(k=>({l:PMI_LBL[k],c:PMI_COL[k],v:S.pmi_counts[k],t:fmt(S.pmi_counts[k]*S.hex_km2,1)+' km²'})),Math.max(...Object.values(S.pmi_counts)));
-  const T2=[['pmi','Pedestrian movement (colour)'],['stree2','Proposed street trees (zoom in)'],['cmin','Walking‑minute labels on map'],['hot','Movement hotspots'],['corr','Animated corridors'],['ctrips',`People walking across the city (${fmt(TRC.length)})`],['trips','Pedestrians walking to the Haram'],['catch','Walking catchment network'],
+  const T2=[['pmi','Pedestrian movement (colour)'],['sites2','Bus stations / stops and malls'],['stree2','Proposed street trees (zoom in)'],['cmin','Walking‑minute labels on map'],['hot','Movement hotspots'],['corr','Animated corridors'],['ctrips',`People walking across the city (${fmt(TRC.length)})`],['trips','Pedestrians walking to the Haram'],['catch','Walking catchment network'],
             ['pcnet','PedestrianCatch sidewalks + crossings'],['pc','PedestrianCatch 1–10 min hulls'],['pcp','PedestrianCatch timed points']];
   $('t2').innerHTML=T2.map(([k,l])=>`<label class="tg"><input type="checkbox" data-k="${k}" ${show[k]?'checked':''}>${l}</label>`).join('');
   $('t2').querySelectorAll('input').forEach(i=>i.onchange=()=>{show[i.dataset.k]=i.checked;applyShow2()});
@@ -635,7 +635,7 @@ $('tslider').oninput=e=>{playing=false;$('bplay').textContent='▶ Play';setT(+e
 let playT0=0;function startPlay(){playing=true;playT0=performance.now();$('bplay').textContent='❚❚ Pause'}
 $('bplay').onclick=()=>{if(playing){playing=false;$('bplay').textContent='▶ Play'}else startPlay()};
 function applyShow2(){if(!m2Ready)return;const vis=(l,on)=>map2.setLayoutProperty(l,'visibility',on?'visible':'none');
-  vis('hex2',false);if(map2.getLayer('pmi2'))vis('pmi2',show.pmi);vis('hex2-3d',show.hex2&&is3D2);vis('hot',show.hot);vis('corr-base',show.corr);vis('corr-flow',show.corr);
+  vis('hex2',false);vis('sites2',show.sites2);if(map2.getLayer('pmi2'))vis('pmi2',show.pmi);vis('hex2-3d',show.hex2&&is3D2);vis('hot',show.hot);vis('corr-base',show.corr);vis('corr-flow',show.corr);
   vis('trips',show.trips);vis('ctrips',show.ctrips);vis('heads',show.trips||show.ctrips);vis('heads-fig',show.trips||show.ctrips);vis('catch',show.catch);vis('pch',show.pc);vis('pcp',show.pcp);vis('pcp-t',show.pcp);vis('pcnet',show.pcnet);vis('cmin5',show.cmin);vis('cmin1',show.cmin);vis('umb2',show.umb2);vis('stree2',show.stree2)}
 $('lg2').innerHTML=`<h4>Pedestrian movement</h4><div class="ramp" style="background:linear-gradient(90deg,#2a2350,#5b2a86 25%,#a3307e 45%,#ec6a4c 70%,#ffd166)"></div><div class="rampl"><span>Very low</span><span>Medium</span><span>Very high</span></div><div class="sep"></div><div class="lg"><span class="sw" style="border:1.5px dashed #ffd166"></span>Movement hotspot</div><div class="sep"></div>
   <div class="lg"><span class="sw l" style="background:linear-gradient(90deg,#c084fc,#f472b6,#fb923c,#fde047)"></span>Walking corridor (colour + width = people)</div>
